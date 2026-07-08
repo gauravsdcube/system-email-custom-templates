@@ -135,24 +135,40 @@ class EmailDefinitionRegistry extends Component
 
     private static function resolveFromBacktrace(): ?string
     {
-        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 12);
-        foreach ($trace as $frame) {
-            $class = $frame['class'] ?? '';
-            $function = $frame['function'] ?? '';
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 30);
+        $isApproval = false;
+        $isDecline = false;
+        $isMessage = false;
 
-            if ($class === ApproveUserForm::class) {
-                if ($function === 'setApprovalDefaults' || $function === 'approve') {
-                    return 'admin.registration_approval';
-                }
-                if ($function === 'setDeclineDefaults' || $function === 'decline') {
-                    return 'admin.registration_decline';
-                }
-                if ($function === 'setSendMessageDefaults' || $function === 'send') {
-                    return 'admin.registration_message';
-                }
+        foreach ($trace as $frame) {
+            if (($frame['class'] ?? '') !== ApproveUserForm::class) {
+                continue;
             }
 
-            if ($class === Invite::class && $function === 'sendInviteMail') {
+            $function = $frame['function'] ?? '';
+            if (in_array($function, ['setApprovalDefaults', 'approve'], true)) {
+                $isApproval = true;
+            }
+            if (in_array($function, ['setDeclineDefaults', 'decline'], true)) {
+                $isDecline = true;
+            }
+            if (in_array($function, ['setSendMessageDefaults', 'sendMessage'], true)) {
+                $isMessage = true;
+            }
+        }
+
+        if ($isApproval) {
+            return 'admin.registration_approval';
+        }
+        if ($isDecline) {
+            return 'admin.registration_decline';
+        }
+        if ($isMessage) {
+            return 'admin.registration_message';
+        }
+
+        foreach ($trace as $frame) {
+            if (($frame['class'] ?? '') === Invite::class && ($frame['function'] ?? '') === 'sendInviteMail') {
                 return self::resolveInviteKeyFromTrace($trace);
             }
         }
@@ -270,7 +286,7 @@ class EmailDefinitionRegistry extends Component
                 [
                     'subject' => 'Welcome to {app_name}',
                     'header' => '<h2 style="margin:0;">Account already exists</h2>',
-                    'body' => "Hello,\n\nIt looks like you already have an account. You can reset your password here:\n\n{password_recovery_url}",
+                    'body' => "Hello,\n\nIt looks like you already have an account. You can reset your password using the button below:\n\n{button:Reset password|{password_recovery_url}}",
                     'footer' => '<p style="margin:0;">{app_name}</p>',
                 ]
             ),
@@ -283,6 +299,7 @@ class EmailDefinitionRegistry extends Component
                 '@humhub/modules/user/views/mails/RecoverPassword',
                 [
                     'display_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient display name'),
+                    'first_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient first name'),
                     'password_reset_url' => Yii::t('SystemEmailCustomizerModule.base', 'Password reset link'),
                     'app_name' => Yii::t('SystemEmailCustomizerModule.base', 'Application name'),
                 ],
@@ -302,6 +319,7 @@ class EmailDefinitionRegistry extends Component
                 '@humhub/modules/user/views/mails/ChangeEmail',
                 [
                     'display_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient display name'),
+                    'first_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient first name'),
                     'confirm_url' => Yii::t('SystemEmailCustomizerModule.base', 'Email confirmation link'),
                     'app_name' => Yii::t('SystemEmailCustomizerModule.base', 'Application name'),
                 ],
@@ -321,13 +339,13 @@ class EmailDefinitionRegistry extends Component
                 '@humhub/modules/user/views/mails/ChangeUsername',
                 [
                     'display_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient display name'),
-                    'confirm_url' => Yii::t('SystemEmailCustomizerModule.base', 'Username confirmation link'),
+                    'first_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient first name'),
                     'app_name' => Yii::t('SystemEmailCustomizerModule.base', 'Application name'),
                 ],
                 [
-                    'subject' => 'Confirm your new username',
+                    'subject' => 'Username changed',
                     'header' => '<h2 style="margin:0;">Confirm your username</h2>',
-                    'body' => "Hello {display_name},\n\nPlease confirm your new username:\n\n{button:Confirm username|{confirm_url}}",
+                    'body' => "Hello {display_name},\n\nYou have successfully changed your username.",
                     'footer' => '<p style="margin:0;">{app_name}</p>',
                 ]
             ),
@@ -340,6 +358,7 @@ class EmailDefinitionRegistry extends Component
                 '@humhub/views/mail/TextOnly',
                 [
                     'display_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient display name'),
+                    'first_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient first name'),
                     'admin_name' => Yii::t('SystemEmailCustomizerModule.base', 'Administrator name'),
                     'login_url' => Yii::t('SystemEmailCustomizerModule.base', 'Login page URL'),
                     'login_link' => Yii::t('SystemEmailCustomizerModule.base', 'Login link (HTML)'),
@@ -348,7 +367,7 @@ class EmailDefinitionRegistry extends Component
                 [
                     'subject' => 'Your account request has been approved',
                     'header' => '<h2 style="margin:0;">Registration approved</h2>',
-                    'body' => "Hello {display_name},\n\nYour account request for {app_name} has been approved by {admin_name}.\n\nYou can now sign in here: {login_link}",
+                    'body' => "Hello {display_name},\n\nYour account request for {app_name} has been approved by {admin_name}.\n\n{button:Login|{login_url}}",
                     'footer' => '<p style="margin:0;">{app_name}</p>',
                 ]
             ),
@@ -361,6 +380,7 @@ class EmailDefinitionRegistry extends Component
                 '@humhub/views/mail/TextOnly',
                 [
                     'display_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient display name'),
+                    'first_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient first name'),
                     'admin_name' => Yii::t('SystemEmailCustomizerModule.base', 'Administrator name'),
                     'message' => Yii::t('SystemEmailCustomizerModule.base', 'Decline message from admin'),
                     'app_name' => Yii::t('SystemEmailCustomizerModule.base', 'Application name'),
@@ -381,6 +401,7 @@ class EmailDefinitionRegistry extends Component
                 '@humhub/views/mail/TextOnly',
                 [
                     'display_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient display name'),
+                    'first_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient first name'),
                     'admin_name' => Yii::t('SystemEmailCustomizerModule.base', 'Administrator name'),
                     'message' => Yii::t('SystemEmailCustomizerModule.base', 'Custom message from admin'),
                     'app_name' => Yii::t('SystemEmailCustomizerModule.base', 'Application name'),
@@ -401,6 +422,7 @@ class EmailDefinitionRegistry extends Component
                 '@humhub/modules/activity/views/mails/mailSummary',
                 [
                     'display_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient display name'),
+                    'first_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient first name'),
                     'activities' => Yii::t('SystemEmailCustomizerModule.base', 'Rendered activity summary content'),
                     'app_name' => Yii::t('SystemEmailCustomizerModule.base', 'Application name'),
                 ],
@@ -525,6 +547,7 @@ class EmailDefinitionRegistry extends Component
                 '@twofa/views/mails/VerifyingCode',
                 [
                     'display_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient display name'),
+                    'first_name' => Yii::t('SystemEmailCustomizerModule.base', 'Recipient first name'),
                     'code' => Yii::t('SystemEmailCustomizerModule.base', 'Verification code'),
                     'date_time' => Yii::t('SystemEmailCustomizerModule.base', 'Date and time the code was sent'),
                     'app_name' => Yii::t('SystemEmailCustomizerModule.base', 'Application name'),

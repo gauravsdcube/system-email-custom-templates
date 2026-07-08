@@ -2,7 +2,7 @@
 
 HumHub module for customizing all system-generated emails with rich text editing, branded headers and footers, call-to-action buttons, and per-email enable toggles.
 
-**Version:** 1.0.0  
+**Version:** 1.1.0  
 **Owner/Maintainer:** [D Cube Consulting](https://dcubeconsulting.co.uk)  
 **Copyright:** Copyright (c) 2026 D Cube Consulting. All rights reserved.
 
@@ -14,7 +14,7 @@ This module intercepts HumHub’s outgoing system mail and applies your custom t
 - **Rich text editing** — HumHub ProseMirror editor for email body content
 - **Branded layout** — configurable header/footer background and font colours
 - **Call-to-action buttons** — insert styled email buttons via shortcodes or the admin UI
-- **Variable placeholders** — dynamic values such as `{app_name}`, `{registration_url}`, `{display_name}`
+- **Variable placeholders** — dynamic values such as `{app_name}`, `{registration_url}`, `{display_name}`, `{first_name}`
 - **Live preview** — preview rendered HTML before sending
 - **Per-template toggle** — enable or disable custom templates individually
 - **Access control** — dedicated permission plus optional authorised group
@@ -113,6 +113,7 @@ Each email type exposes relevant placeholders (shown in the editor sidebar). Com
 |----------|-------------|
 | `{app_name}` | HumHub installation name |
 | `{display_name}` | Recipient display name |
+| `{first_name}` | Recipient first name (profile first name, or username if unset) |
 | `{registration_url}` | Registration link (invite emails) |
 | `{password_reset_url}` | Password reset link |
 | `{originator_name}` | User who triggered the email |
@@ -120,7 +121,7 @@ Each email type exposes relevant placeholders (shown in the editor sidebar). Com
 
 ## How it works
 
-- `MailInterceptor` replaces the application mailer and intercepts `compose()` calls.
+- `MailInterceptor` replaces the application mailer, queues customizations at `compose()`, and applies templates in `beforeSend()` after recipients are set.
 - `EmailDefinitionRegistry` maps HumHub mail views and notifications to template keys.
 - `TemplateProcessor` replaces variables, converts rich text to email HTML, and renders button shortcodes.
 - `Events::onBeforeRequest` bootstraps the module early so registration and other pre-request emails are intercepted.
@@ -144,13 +145,17 @@ Semantic versioning: `MAJOR.MINOR.PATCH`
 
 ### Changelog
 
+See [CHANGELOG.md](CHANGELOG.md) for the full release history.
+
+#### 1.1.0
+
+- Added `{first_name}` variable for personalised greetings
+- Fixed button shortcodes and `{display_name}` substitution in live emails
+- Improved recipient resolution and PHP 8.4 compatibility
+
 #### 1.0.0
 
 - Initial release
-- Rich text email templates with header, body, and footer
-- Button shortcode support with email-client-safe rendering
-- Per-email enable toggles and live preview
-- Group and permission-based access control
 
 ## License
 

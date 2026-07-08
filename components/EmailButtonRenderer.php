@@ -81,8 +81,9 @@ class EmailButtonRenderer
      */
     public static function normalizeShortcodes(string $content): string
     {
+        // Rich-text editor may escape the pipe as \| or \\|
         $content = preg_replace(
-            '/(\{button:[^{}]+?)\\\\\|/',
+            '/(\{button:[^{}]+?)\\\\+\|/',
             '$1|',
             $content
         ) ?? $content;

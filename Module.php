@@ -19,7 +19,7 @@ use yii\helpers\Url;
 
 class Module extends BaseModule
 {
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.1.0';
 
     public const SETTING_AUTHORIZED_GROUP = 'authorizedGroupName';
 

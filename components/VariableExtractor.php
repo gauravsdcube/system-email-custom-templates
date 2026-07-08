@@ -8,7 +8,6 @@
 
 namespace humhub\modules\systemEmailCustomizer\components;
 
-use humhub\modules\admin\models\forms\ApproveUserForm;
 use humhub\modules\notification\components\BaseNotification;
 use humhub\modules\user\models\Invite;
 use humhub\modules\user\models\User;
@@ -23,11 +22,15 @@ class VariableExtractor
      * @param array<string, mixed> $params
      * @return array<string, string>
      */
-    public static function extract(string $templateKey, array $params = [], ?MessageInterface $message = null): array
+    public static function extract(string $templateKey, array $params = [], ?MessageInterface $message = null, ?User $recipient = null): array
     {
         $variables = [
             'app_name' => (string)Yii::$app->name,
         ];
+
+        if ($recipient === null && $message !== null) {
+            $recipient = self::resolveRecipientFromMessage($message);
+        }
 
         switch ($templateKey) {
             case 'user.invite_self':
@@ -41,42 +44,33 @@ class VariableExtractor
                 break;
 
             case 'user.twofa_verification_code':
-                $user = $params['user'] ?? null;
-                if ($user instanceof User) {
-                    $variables['display_name'] = $user->displayName;
-                }
+                self::applyRecipientVariables($variables, self::resolveUserFromParamsOrRecipient($params, $recipient));
                 $variables['code'] = (string)($params['code'] ?? '');
                 $variables['date_time'] = Yii::$app->formatter->asDatetime(time());
                 break;
 
             case 'user.password_recovery':
-                $user = $params['user'] ?? null;
-                if ($user instanceof User) {
-                    $variables['display_name'] = $user->displayName;
-                }
+                self::applyRecipientVariables($variables, self::resolveUserFromParamsOrRecipient($params, $recipient));
                 $variables['password_reset_url'] = (string)($params['linkPasswordReset'] ?? '');
                 break;
 
             case 'user.change_email':
+                self::applyRecipientVariables($variables, self::resolveUserFromParamsOrRecipient($params, $recipient));
+                $variables['confirm_url'] = (string)($params['approveUrl'] ?? $params['link'] ?? $params['confirmUrl'] ?? '');
+                break;
+
             case 'user.change_username':
-                $user = $params['user'] ?? null;
-                if ($user instanceof User) {
-                    $variables['display_name'] = $user->displayName;
-                }
-                $variables['confirm_url'] = (string)($params['link'] ?? $params['confirmUrl'] ?? '');
+                self::applyRecipientVariables($variables, self::resolveUserFromParamsOrRecipient($params, $recipient));
                 break;
 
             case 'admin.registration_approval':
             case 'admin.registration_decline':
             case 'admin.registration_message':
-                $variables = array_merge($variables, self::extractAdminRegistrationVariables($params));
+                $variables = array_merge($variables, self::extractAdminRegistrationVariables($params, $recipient));
                 break;
 
             case 'activity.mail_summary':
-                $user = $params['user'] ?? null;
-                if ($user instanceof User) {
-                    $variables['display_name'] = $user->displayName;
-                }
+                self::applyRecipientVariables($variables, self::resolveUserFromParamsOrRecipient($params, $recipient));
                 $variables['activities'] = (string)($params['activities'] ?? $params['content'] ?? '');
                 break;
 
@@ -94,6 +88,8 @@ class VariableExtractor
             }
         }
 
+        self::applyUrlFallbacks($templateKey, $variables, $params, $recipient);
+
         return array_map(static fn($value) => is_scalar($value) ? (string)$value : '', $variables);
     }
 
@@ -108,6 +104,13 @@ class VariableExtractor
             'originator_name' => (string)($params['originatorName'] ?? ''),
             'space_name' => '',
         ];
+
+        if ($variables['registration_url'] === '') {
+            $invite = self::findInviteFromTrace();
+            if ($invite instanceof Invite) {
+                $variables['registration_url'] = Url::to(['/user/registration', 'token' => $invite->token], true);
+            }
+        }
 
         $originator = $params['originator'] ?? null;
         if ($originator instanceof User) {
@@ -126,25 +129,32 @@ class VariableExtractor
      * @param array<string, mixed> $params
      * @return array<string, string>
      */
-    private static function extractAdminRegistrationVariables(array $params): array
+    private static function extractAdminRegistrationVariables(array $params, ?User $recipient = null): array
     {
         $variables = [
             'display_name' => '',
+            'first_name' => '',
             'admin_name' => '',
-            'message' => (string)($params['message'] ?? ''),
+            'message' => '',
             'login_url' => '',
             'login_link' => '',
         ];
 
-        $form = self::findApproveUserFormFromTrace();
-        if ($form instanceof ApproveUserForm) {
-            $variables['display_name'] = Html::encode($form->user->displayName);
-            $variables['admin_name'] = Html::encode($form->admin->displayName);
-            $variables['message'] = strip_tags((string)$form->message);
-            $loginUrl = Url::to(['/user/auth/login'], true);
-            $variables['login_url'] = urldecode($loginUrl);
-            $variables['login_link'] = Html::a($variables['login_url'], $loginUrl);
+        self::applyRecipientVariables($variables, $recipient);
+
+        $admin = Yii::$app->has('user', true) ? Yii::$app->user->identity : null;
+        if ($admin instanceof User) {
+            $variables['admin_name'] = Html::encode($admin->displayName);
         }
+
+        $rawMessage = (string)($params['message'] ?? '');
+        if ($rawMessage !== '') {
+            $variables['message'] = trim(strip_tags(html_entity_decode($rawMessage, ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+        }
+
+        $loginUrl = Url::to(['/user/auth/login'], true);
+        $variables['login_url'] = urldecode($loginUrl);
+        $variables['login_link'] = Html::a($variables['login_url'], $loginUrl);
 
         return $variables;
     }
@@ -178,11 +188,101 @@ class VariableExtractor
         return $variables;
     }
 
-    private static function findApproveUserFormFromTrace(): ?ApproveUserForm
+    /**
+     * @param array<string, string> $variables
+     */
+    private static function applyRecipientVariables(array &$variables, ?User $user): void
     {
-        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 12);
+        if (!$user instanceof User) {
+            return;
+        }
+
+        if (empty($variables['display_name'])) {
+            $variables['display_name'] = Html::encode($user->displayName);
+        }
+
+        if (empty($variables['first_name'])) {
+            $variables['first_name'] = self::resolveFirstName($user);
+        }
+    }
+
+    private static function resolveFirstName(User $user): string
+    {
+        $profile = $user->profile;
+        if ($profile !== null && !empty($profile->firstname)) {
+            return Html::encode((string)$profile->firstname);
+        }
+
+        return Html::encode((string)($user->username ?? ''));
+    }
+
+    private static function resolveUserFromParamsOrRecipient(array $params, ?User $recipient): ?User
+    {
+        $user = $params['user'] ?? null;
+        if ($user instanceof User) {
+            return $user;
+        }
+
+        return $recipient;
+    }
+
+    private static function resolveRecipientFromMessage(MessageInterface $message): ?User
+    {
+        $to = $message->getTo();
+        $email = is_array($to) ? array_key_first($to) : $to;
+        if (!is_string($email) || $email === '') {
+            return null;
+        }
+
+        return User::findOne(['email' => $email]);
+    }
+
+    /**
+     * @param array<string, string> $variables
+     * @param array<string, mixed> $params
+     */
+    private static function applyUrlFallbacks(string $templateKey, array &$variables, array $params, ?User $recipient): void
+    {
+        if (empty($variables['registration_url']) && str_starts_with($templateKey, 'user.invite')) {
+            $invite = self::findInviteFromTrace();
+            if ($invite instanceof Invite) {
+                $variables['registration_url'] = Url::to(['/user/registration', 'token' => $invite->token], true);
+            }
+        }
+
+        if (empty($variables['password_reset_url']) && $templateKey === 'user.password_recovery') {
+            $variables['password_reset_url'] = (string)($params['linkPasswordReset'] ?? '');
+        }
+
+        if (empty($variables['password_recovery_url']) && $templateKey === 'user.already_registered') {
+            $variables['password_recovery_url'] = (string)($params['passwordRecoveryUrl'] ?? Url::to(['/user/password-recovery'], true));
+        }
+
+        if (empty($variables['confirm_url']) && $templateKey === 'user.change_email') {
+            $variables['confirm_url'] = (string)($params['approveUrl'] ?? $params['link'] ?? $params['confirmUrl'] ?? '');
+        }
+
+        if (empty($variables['login_url'])) {
+            $variables['login_url'] = urldecode(Url::to(['/user/auth/login'], true));
+        }
+
+        if (empty($variables['login_link'])) {
+            $variables['login_link'] = Html::a($variables['login_url'], $variables['login_url']);
+        }
+
+        if ($recipient instanceof User) {
+            self::applyRecipientVariables($variables, $recipient);
+        }
+    }
+
+    private static function findInviteFromTrace(): ?Invite
+    {
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 30);
         foreach ($trace as $frame) {
-            if (($frame['class'] ?? '') === ApproveUserForm::class && isset($frame['object']) && $frame['object'] instanceof ApproveUserForm) {
+            if (($frame['class'] ?? '') === Invite::class
+                && ($frame['function'] ?? '') === 'sendInviteMail'
+                && isset($frame['object'])
+                && $frame['object'] instanceof Invite) {
                 return $frame['object'];
             }
         }
@@ -200,6 +300,7 @@ class VariableExtractor
         $samples = [
             'app_name' => (string)Yii::$app->name,
             'display_name' => 'Jane Doe',
+            'first_name' => 'Jane',
             'user_name' => 'Jane Doe',
             'user_email' => 'jane.doe@example.com',
             'originator_name' => 'John Admin',

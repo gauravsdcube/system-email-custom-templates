@@ -94,6 +94,7 @@ return [
     'Sent when a user requests a password reset.' => 'Sent when a user requests a password reset.',
     'When a user submits the forgot-password form.' => 'When a user submits the forgot-password form.',
     'Recipient display name' => 'Recipient display name',
+    'Recipient first name' => 'Recipient first name',
     'Password reset link' => 'Password reset link',
     'Email change confirmation' => 'Email change confirmation',
     'Sent when a user changes their email address.' => 'Sent when a user changes their email address.',

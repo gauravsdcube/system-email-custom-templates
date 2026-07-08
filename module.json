@@ -2,7 +2,7 @@
     "id": "system-email-customizer",
     "name": "System Email Customizer",
     "description": "Customize all system-generated emails with rich text editing, banners, footers, and per-email enable toggles.",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "humhub": {
         "minVersion": "1.18.0"
     },

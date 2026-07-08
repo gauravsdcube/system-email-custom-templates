@@ -17,6 +17,11 @@ use yii\mail\MessageInterface;
 class MailInterceptor extends Mailer
 {
     /**
+     * @var array<int, array{templateKey: string, params: array<string, mixed>, template: SystemEmailTemplate}>
+     */
+    private static array $pendingCustomizations = [];
+
+    /**
      * @inheritdoc
      */
     public function compose($view = null, array $params = [])
@@ -33,16 +38,48 @@ class MailInterceptor extends Mailer
             return $message;
         }
 
-        $recipient = $this->resolveRecipient($params, $message);
-        $variables = VariableExtractor::extract($templateKey, $params, $message);
-        $processed = (new TemplateProcessor())->process($template, $variables, $recipient, false);
-
-        $message->setHtmlBody($processed['body']);
-        if ($processed['subject'] !== '') {
-            $message->setSubject($processed['subject']);
-        }
+        self::$pendingCustomizations[spl_object_id($message)] = [
+            'templateKey' => $templateKey,
+            'params' => $params,
+            'template' => $template,
+        ];
 
         return $message;
+    }
+
+    /**
+     * Apply custom templates after recipients/subject are set on the message.
+     *
+     * @inheritdoc
+     */
+    public function beforeSend($message)
+    {
+        $messageId = spl_object_id($message);
+        if (isset(self::$pendingCustomizations[$messageId])) {
+            $pending = self::$pendingCustomizations[$messageId];
+            unset(self::$pendingCustomizations[$messageId]);
+
+            $recipient = $this->resolveRecipient($pending['params'], $message);
+            $variables = VariableExtractor::extract(
+                $pending['templateKey'],
+                $pending['params'],
+                $message,
+                $recipient
+            );
+            $processed = (new TemplateProcessor())->process(
+                $pending['template'],
+                $variables,
+                $recipient,
+                false
+            );
+
+            $message->setHtmlBody($processed['body']);
+            if ($processed['subject'] !== '') {
+                $message->setSubject($processed['subject']);
+            }
+        }
+
+        return parent::beforeSend($message);
     }
 
     /**

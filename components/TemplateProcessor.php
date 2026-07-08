@@ -29,8 +29,18 @@ class TemplateProcessor
         [$body, $bodyButtons] = EmailButtonRenderer::extractToPlaceholders($body);
         $body = $this->convertRichTextToHtml($body, $recipient, $isPreview);
         $body = EmailButtonRenderer::injectFromPlaceholders($body, $bodyButtons);
-        $header = EmailButtonRenderer::process($this->processHeaderFooter($header, $recipient, $isPreview));
-        $footer = EmailButtonRenderer::process($this->processHeaderFooter($footer, $recipient, $isPreview));
+
+        [$header, $headerButtons] = EmailButtonRenderer::extractToPlaceholders($header);
+        $header = EmailButtonRenderer::injectFromPlaceholders(
+            $this->processHeaderFooter($header, $recipient, $isPreview),
+            $headerButtons
+        );
+
+        [$footer, $footerButtons] = EmailButtonRenderer::extractToPlaceholders($footer);
+        $footer = EmailButtonRenderer::injectFromPlaceholders(
+            $this->processHeaderFooter($footer, $recipient, $isPreview),
+            $footerButtons
+        );
 
         return [
             'subject' => $subject,
@@ -43,8 +53,18 @@ class TemplateProcessor
      */
     private function replaceVariables(string $content, array $variables): string
     {
-        foreach ($variables as $key => $value) {
-            $content = str_replace('{' . $key . '}', $value, $content);
+        $content = EmailButtonRenderer::normalizeShortcodes($content);
+
+        for ($pass = 0; $pass < 3; $pass++) {
+            $previous = $content;
+            foreach ($variables as $key => $value) {
+                if ($value !== '') {
+                    $content = str_replace('{' . $key . '}', $value, $content);
+                }
+            }
+            if ($content === $previous) {
+                break;
+            }
         }
 
         return $content;
