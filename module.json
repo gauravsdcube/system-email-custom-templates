@@ -1,0 +1,27 @@
+{
+    "id": "system-email-customizer",
+    "name": "System Email Customizer",
+    "description": "Customize all system-generated emails with rich text editing, banners, footers, and per-email enable toggles.",
+    "version": "1.0.0",
+    "humhub": {
+        "minVersion": "1.18.0"
+    },
+    "homepage": "https://dcubeconsulting.co.uk",
+    "authors": [
+        {
+            "name": "D Cube Consulting",
+            "email": "info@dcubeconsulting.co.uk",
+            "homepage": "https://dcubeconsulting.co.uk",
+            "role": "Developer"
+        }
+    ],
+    "keywords": [
+        "email",
+        "mail",
+        "templates",
+        "notifications",
+        "customizer"
+    ],
+    "license": "Proprietary",
+    "copyright": "Copyright (c) 2026 D Cube Consulting. All rights reserved."
+}

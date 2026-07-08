@@ -1,0 +1,82 @@
+.sec-email-index .sec-category-block + .sec-category-block {
+    margin-top: 28px;
+}
+
+.sec-category-title {
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.sec-email-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.sec-email-description,
+.sec-trigger {
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.sec-email-table > thead > tr > th {
+    border-bottom-width: 1px;
+    color: #6b7280;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.sec-section {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 18px;
+}
+
+.sec-section h5 {
+    margin-top: 0;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.sec-side-panel .panel-body p {
+    margin-bottom: 12px;
+}
+
+.sec-variable-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.sec-variable-list .btn {
+    margin: 0;
+}
+
+.sec-color-group .form-group {
+    margin-bottom: 12px;
+}
+
+.sec-color-picker {
+    height: 42px;
+    padding: 4px;
+}
+
+.sec-button-builder .form-group {
+    margin-bottom: 10px;
+}
+
+.sec-button-builder .control-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.sec-button-syntax code {
+    display: inline-block;
+    margin-top: 4px;
+    word-break: break-all;
+}
