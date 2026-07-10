@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-07-10
+
+### Fixed
+
+- Markdown links (including `mailto:` contact links) no longer disappear from email bodies during rich-text conversion
+- Magic link sign-in preview now uses a sample verify URL instead of the login page
+
 ## [1.1.0] - 2026-07-08
 
 ### Added
@@ -38,5 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Per-email enable toggles and live preview
 - Group and permission-based access control
 
+[1.1.1]: https://github.com/gauravsdcube/system-email-custom-templates/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/gauravsdcube/system-email-custom-templates/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/gauravsdcube/system-email-custom-templates/releases/tag/v1.0.0

@@ -97,9 +97,10 @@ class TemplateProcessor
 
     private function convertRichTextToHtml(string $content, ?User $recipient, bool $isPreview): string
     {
+        // Do not pass rich-text extension excludes here: HumHub's link renderer treats
+        // excluded extensions as a hard stop and drops standard markdown links (e.g. mailto).
         $result = \humhub\modules\content\widgets\richtext\converter\RichTextToEmailHtmlConverter::process($content, [
             'minimal' => false,
-            'exclude' => ['mention', 'oembed'],
             \humhub\modules\content\widgets\richtext\converter\RichTextToEmailHtmlConverter::OPTION_RECEIVER_USER => $recipient,
         ]);
 

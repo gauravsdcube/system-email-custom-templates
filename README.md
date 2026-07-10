@@ -2,7 +2,7 @@
 
 HumHub module for customizing all system-generated emails with rich text editing, branded headers and footers, call-to-action buttons, and per-email enable toggles.
 
-**Version:** 1.1.0  
+**Version:** 1.1.1  
 **Owner/Maintainer:** [D Cube Consulting](https://dcubeconsulting.co.uk)  
 **Copyright:** Copyright (c) 2026 D Cube Consulting. All rights reserved.
 
@@ -105,6 +105,8 @@ You can also use the **Insert button** panel in the template editor.
 
 Buttons are rendered as table-based HTML compatible with common email clients and use your HumHub theme’s primary colours via `MailStyleHelper`.
 
+For contact links in the body, use markdown syntax such as `[hello@example.org](mailto:hello@example.org)`.
+
 ## Variables
 
 Each email type exposes relevant placeholders (shown in the editor sidebar). Common variables include:
@@ -146,6 +148,11 @@ Semantic versioning: `MAJOR.MINOR.PATCH`
 ### Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release history.
+
+#### 1.1.1
+
+- Fixed markdown links (including `mailto:`) disappearing from email bodies during conversion
+- Added magic link sign-in preview URL sample for templates registered by the Magic Link Auth module
 
 #### 1.1.0
 

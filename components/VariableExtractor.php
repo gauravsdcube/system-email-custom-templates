@@ -63,6 +63,12 @@ class VariableExtractor
                 self::applyRecipientVariables($variables, self::resolveUserFromParamsOrRecipient($params, $recipient));
                 break;
 
+            case 'magic_link_login':
+                self::applyRecipientVariables($variables, self::resolveUserFromParamsOrRecipient($params, $recipient));
+                $variables['magic_link_url'] = (string)($params['magicLinkUrl'] ?? $params['magic_link_url'] ?? '');
+                $variables['expiry_minutes'] = (string)($params['expiryMinutes'] ?? $params['expiry_minutes'] ?? '');
+                break;
+
             case 'admin.registration_approval':
             case 'admin.registration_decline':
             case 'admin.registration_message':
@@ -262,6 +268,14 @@ class VariableExtractor
             $variables['confirm_url'] = (string)($params['approveUrl'] ?? $params['link'] ?? $params['confirmUrl'] ?? '');
         }
 
+        if (empty($variables['magic_link_url']) && $templateKey === 'magic_link_login') {
+            $variables['magic_link_url'] = (string)($params['magicLinkUrl'] ?? $params['magic_link_url'] ?? '');
+        }
+
+        if (empty($variables['expiry_minutes']) && $templateKey === 'magic_link_login') {
+            $variables['expiry_minutes'] = (string)($params['expiryMinutes'] ?? $params['expiry_minutes'] ?? '');
+        }
+
         if (empty($variables['login_url'])) {
             $variables['login_url'] = urldecode(Url::to(['/user/auth/login'], true));
         }
@@ -322,6 +336,8 @@ class VariableExtractor
             'admin_notes' => 'Please update your profile and apply again.',
             'code' => '123456',
             'date_time' => date('Y-m-d H:i:s'),
+            'magic_link_url' => Url::to(['/magic-link-auth/auth/verify', 'token' => 'preview-token', 'guid' => '00000000-0000-0000-0000-000000000000'], true),
+            'expiry_minutes' => '10',
         ];
 
         $definition = EmailDefinitionRegistry::getDefinition($templateKey);
